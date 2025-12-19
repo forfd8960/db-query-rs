@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use sqlx::{sqlite::SqlitePool, Row};
+use sqlx::sqlite::SqlitePool;
 use std::path::Path;
 use tokio::fs;
 
@@ -16,13 +16,16 @@ impl Repository {
     pub async fn new(database_path: &str) -> Result<Self> {
         // Create directory if it doesn't exist
         if let Some(parent) = Path::new(database_path).parent() {
-            fs::create_dir_all(parent)
-                .await
-                .context("Failed to create database directory")?;
+            if !parent.as_os_str().is_empty() {
+                fs::create_dir_all(parent)
+                    .await
+                    .context("Failed to create database directory")?;
+            }
         }
 
-        // Create connection pool
-        let pool = SqlitePool::connect(&format!("sqlite://{}", database_path))
+        // Create connection pool with mode=rwc to create database file if it doesn't exist
+        let connection_string = format!("sqlite://{}?mode=rwc", database_path);
+        let pool = SqlitePool::connect(&connection_string)
             .await
             .context("Failed to connect to SQLite database")?;
 

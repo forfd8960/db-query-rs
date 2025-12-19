@@ -1,1 +1,1 @@
-// Validation module - SQL validator added in Phase 2 (US3)
+pub mod sql_validator;

@@ -1,1 +1,4 @@
-// Services module - implementations added in Phase 2 & 3
+pub mod database_service;
+pub mod llm_service;
+pub mod metadata_service;
+pub mod query_service;

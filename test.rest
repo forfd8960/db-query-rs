@@ -1,0 +1,221 @@
+# Database Query Tool API Tests
+# Use REST Client extension in VS Code to run these tests
+# Server should be running on http://localhost:8000
+
+@baseUrl = http://localhost:8000
+@apiBase = {{baseUrl}}/api/v1
+
+### Health Check
+GET {{baseUrl}}/health
+
+###############################################################################
+# User Story 1: Database Connection Management
+###############################################################################
+
+### 1. Add a PostgreSQL database connection
+POST {{apiBase}}/databases
+Content-Type: application/json
+
+{
+  "url": "postgres://postgres:postgres@localhost:5432/test_db"
+}
+
+### 2. Add another database connection (example production DB)
+POST {{apiBase}}/databases
+Content-Type: application/json
+
+{
+  "url": "postgresql://user:secret@localhost:5432/production"
+}
+
+### 3. List all database connections
+# Passwords should be masked as ***
+GET {{apiBase}}/databases
+
+### 4. Update database connection URL
+PUT {{apiBase}}/databases/testdb
+Content-Type: application/json
+
+{
+  "url": "postgresql://postgres:newpassword@localhost:5432/testdb"
+}
+
+### 5. Try to add duplicate database (should fail)
+POST {{apiBase}}/databases
+Content-Type: application/json
+
+{
+  "url": "postgresql://postgres:password@localhost:5432/testdb"
+}
+
+### 6. Try to add invalid URL (should fail - validation error)
+POST {{apiBase}}/databases
+Content-Type: application/json
+
+{
+  "url": "mysql://user:pass@localhost:3306/db"
+}
+
+### 7. Update non-existent database (should fail - 404)
+PUT {{apiBase}}/databases/nonexistent
+Content-Type: application/json
+
+{
+  "url": "postgresql://postgres:password@localhost:5432/newdb"
+}
+
+###############################################################################
+# User Story 2: Database Metadata Browsing
+###############################################################################
+
+### 8. Get database metadata (tables, views, columns)
+# Replace 'testdb' with your actual database name
+GET {{apiBase}}/databases/testdb/metadata
+
+### 9. Get metadata for non-existent database (should fail - 404)
+GET {{apiBase}}/databases/nonexistent/metadata
+
+###############################################################################
+# User Story 3: SQL Query Execution
+###############################################################################
+
+### 10. Execute simple SELECT query
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users LIMIT 10"
+}
+
+### 11. Execute SELECT without LIMIT (should auto-inject LIMIT 1000)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT id, username, email FROM users WHERE id < 100"
+}
+
+### 12. Execute query with WHERE clause and ORDER BY
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users WHERE created_at > '2024-01-01' ORDER BY created_at DESC LIMIT 20"
+}
+
+### 13. Execute JOIN query
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT u.id, u.username, p.title FROM users u JOIN posts p ON u.id = p.user_id LIMIT 10"
+}
+
+### 14. Try to execute DELETE (should fail - validation error)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "DELETE FROM users WHERE id = 1"
+}
+
+### 15. Try to execute UPDATE (should fail - validation error)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "UPDATE users SET username = 'hacked' WHERE id = 1"
+}
+
+### 16. Try to execute DROP TABLE (should fail - validation error)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "DROP TABLE users"
+}
+
+### 17. Try to execute INSERT (should fail - validation error)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "INSERT INTO users (username) VALUES ('test')"
+}
+
+### 18. Execute query with invalid SQL syntax (should fail)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT FROM WHERE"
+}
+
+### 19. Execute query on non-existent database (should fail - 404)
+POST {{apiBase}}/databases/nonexistent/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM users"
+}
+
+###############################################################################
+# User Story 4: Natural Language Query Translation (Phase 3)
+###############################################################################
+
+### 20. Execute natural language query
+# Note: Requires OPENAI_API_KEY to be set
+POST {{apiBase}}/databases/testdb/nl-query
+Content-Type: application/json
+
+{
+  "nlQuery": "Get me the first 10 users ordered by registration date"
+}
+
+### 21. Natural language query - count records
+POST {{apiBase}}/databases/testdb/nl-query
+Content-Type: application/json
+
+{
+  "nlQuery": "How many active users are there?"
+}
+
+### 22. Natural language query - filtered results
+POST {{apiBase}}/databases/testdb/nl-query
+Content-Type: application/json
+
+{
+  "nlQuery": "Show me all posts created in the last 7 days"
+}
+
+###############################################################################
+# Edge Cases & Error Handling
+###############################################################################
+
+### 23. Empty SQL query (should fail)
+POST {{apiBase}}/databases/testdb/query
+Content-Type: application/json
+
+{
+  "sql": ""
+}
+
+### 24. Missing required fields
+POST {{apiBase}}/databases
+Content-Type: application/json
+
+{
+}
+
+### 25. Malformed JSON
+POST {{apiBase}}/databases
+Content-Type: application/json
+
+{
+  "url": "postgresql://test
+
+### 26. Test CORS headers
+OPTIONS {{apiBase}}/databases
+Origin: http://localhost:3000
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: Content-Type

@@ -7,7 +7,7 @@ mod validation;
 
 use anyhow::{Context, Result};
 use std::sync::Arc;
-use tower_http::cors::{CorsLayer, Any};
+use tower_http::{cors::{Any, CorsLayer}, normalize_path::NormalizePathLayer};
 use tracing_subscriber;
 
 use crate::{
@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         .allow_headers(Any);
 
     // Create router with CORS
-    let app = create_router(app_state).layer(cors);
+    let app = create_router(app_state).layer(cors).layer(NormalizePathLayer::trim_trailing_slash());
 
     // Bind server to configured port
     let addr = format!("0.0.0.0:{}", config.port);

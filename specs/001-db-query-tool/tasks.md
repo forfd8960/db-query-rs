@@ -54,13 +54,13 @@ Single project structure: `src/`, `tests/` at repository root (as defined in pla
 
 **Independent Test**: Add database via POST, list via GET, update via PUT - verify persistence in SQLite
 
-- [ ] T013 [P] [US1] Create DatabaseConnection model in src/models/database.rs with validation
-- [ ] T014 [US1] Implement database_service.rs: add_database() with PostgreSQL connection URL validation and test connection
-- [ ] T015 [US1] Implement database_service.rs: list_databases() to retrieve all connections from SQLite with credentials masked
-- [ ] T016 [US1] Implement database_service.rs: update_database() to modify connection URL in SQLite
-- [ ] T017 [US1] Implement POST /api/v1/databases handler in src/api/handlers/database_handlers.rs
-- [ ] T018 [P] [US1] Implement GET /api/v1/databases handler in src/api/handlers/database_handlers.rs
-- [ ] T019 [P] [US1] Implement PUT /api/v1/databases/{db_name} handler in src/api/handlers/database_handlers.rs
+- [X] T013 [P] [US1] Create DatabaseConnection model in src/models/database.rs with validation
+- [X] T014 [US1] Implement database_service.rs: add_database() with PostgreSQL connection URL validation and test connection
+- [X] T015 [US1] Implement database_service.rs: list_databases() to retrieve all connections from SQLite with credentials masked
+- [X] T016 [US1] Implement database_service.rs: update_database() to modify connection URL in SQLite
+- [X] T017 [US1] Implement POST /api/v1/databases handler in src/api/handlers/database_handlers.rs
+- [X] T018 [P] [US1] Implement GET /api/v1/databases handler in src/api/handlers/database_handlers.rs
+- [X] T019 [P] [US1] Implement PUT /api/v1/databases/{db_name} handler in src/api/handlers/database_handlers.rs
 - [ ] T020 [US1] Add integration tests in tests/integration/database_tests.rs for all database CRUD operations
 
 ### User Story 2: Database Metadata Browsing (P2)
@@ -69,12 +69,12 @@ Single project structure: `src/`, `tests/` at repository root (as defined in pla
 
 **Independent Test**: Request metadata for configured database, verify tables/columns returned in camelCase JSON with caching
 
-- [ ] T021 [P] [US2] Create TableMetadata and ColumnMetadata models in src/models/metadata.rs
-- [ ] T022 [US2] Implement metadata_service.rs: fetch_metadata_from_postgres() using information_schema queries from research.md
-- [ ] T023 [US2] Implement metadata_service.rs: cache_metadata_to_sqlite() to store tables and columns in SQLite
-- [ ] T024 [US2] Implement metadata_service.rs: get_cached_metadata() to retrieve metadata from SQLite with fast joins
-- [ ] T025 [US2] Implement metadata_service.rs: get_or_fetch_metadata() orchestration (check cache, fetch if missing, return camelCase)
-- [ ] T026 [US2] Implement GET /api/v1/databases/{db_name}/metadata handler in src/api/handlers/metadata_handlers.rs
+- [X] T021 [P] [US2] Create TableMetadata and ColumnMetadata models in src/models/metadata.rs
+- [X] T022 [US2] Implement metadata_service.rs: fetch_metadata_from_postgres() using information_schema queries from research.md
+- [X] T023 [US2] Implement metadata_service.rs: cache_metadata_to_sqlite() to store tables and columns in SQLite
+- [X] T024 [US2] Implement metadata_service.rs: get_cached_metadata() to retrieve metadata from SQLite with fast joins
+- [X] T025 [US2] Implement metadata_service.rs: get_or_fetch_metadata() orchestration (check cache, fetch if missing, return camelCase)
+- [X] T026 [US2] Implement GET /api/v1/databases/{db_name}/metadata handler in src/api/handlers/metadata_handlers.rs
 - [ ] T027 [US2] Add integration tests in tests/integration/metadata_tests.rs for metadata retrieval and caching behavior
 
 ### User Story 3: SQL Query Execution (P3)
@@ -83,11 +83,11 @@ Single project structure: `src/`, `tests/` at repository root (as defined in pla
 
 **Independent Test**: Submit SELECT query, verify execution and camelCase results. Submit non-SELECT, verify rejection. Submit query without LIMIT, verify LIMIT 1000 added.
 
-- [ ] T028 [P] [US3] Create QueryResult model in src/models/query.rs with camelCase serialization
-- [ ] T029 [US3] Implement SQL validator in src/validation/sql_validator.rs using sqlparser-rs (parse, check SELECT-only, detect LIMIT)
-- [ ] T030 [US3] Implement sql_validator.rs: inject_limit_if_missing() to append "LIMIT 1000" to queries without LIMIT
-- [ ] T031 [US3] Implement query_service.rs: execute_query() with SQLx to run query on PostgreSQL and transform results to camelCase JSON
-- [ ] T032 [US3] Implement POST /api/v1/databases/{db_name}/query handler in src/api/handlers/query_handlers.rs with validation pipeline
+- [X] T028 [P] [US3] Create QueryResult model in src/models/query.rs with camelCase serialization
+- [X] T029 [US3] Implement SQL validator in src/validation/sql_validator.rs using sqlparser-rs (parse, check SELECT-only, detect LIMIT)
+- [X] T030 [US3] Implement sql_validator.rs: inject_limit_if_missing() to append "LIMIT 1000" to queries without LIMIT
+- [X] T031 [US3] Implement query_service.rs: execute_query() with SQLx to run query on PostgreSQL and transform results to camelCase JSON
+- [X] T032 [US3] Implement POST /api/v1/databases/{db_name}/query handler in src/api/handlers/query_handlers.rs with validation pipeline
 - [ ] T033 [US3] Add integration tests in tests/integration/query_tests.rs for valid queries, invalid queries, LIMIT injection, non-SELECT rejection
 - [ ] T034 [P] [US3] Add unit tests in tests/unit/validation_tests.rs for SQL parser (SELECT detection, LIMIT detection, syntax errors)
 
@@ -107,13 +107,13 @@ Single project structure: `src/`, `tests/` at repository root (as defined in pla
 
 **Independent Test**: Submit "Get 10 users" in natural language, verify SQL generation, validation, execution, and result return with both generatedSql and result in response
 
-- [ ] T035 [P] [US4] Create NaturalLanguageRequest model in src/models/query.rs
-- [ ] T036 [US4] Implement llm_service.rs: initialize OpenAI client with Auth::from_env() for OPENAI_API_KEY
-- [ ] T037 [US4] Implement llm_service.rs: build_prompt_with_schema() to construct LLM prompt using database metadata from research.md template
-- [ ] T038 [US4] Implement llm_service.rs: generate_sql_from_nl() to call OpenAI Chat Completion API with temperature=0 and extract SQL from response
-- [ ] T039 [US4] Implement llm_service.rs: parse_llm_response() to extract SQL from markdown code fences and clean up formatting
-- [ ] T040 [US4] Implement POST /api/v1/databases/{db_name}/nl-query handler in src/api/handlers/query_handlers.rs (get metadata, call LLM, validate SQL, execute, return result)
-- [ ] T041 [US4] Add error handling for LLM service unavailable (503), invalid API key (500), and unsafe SQL generation (400)
+- [X] T035 [P] [US4] Create NaturalLanguageRequest model in src/models/query.rs
+- [X] T036 [US4] Implement llm_service.rs: initialize OpenAI client with Auth::from_env() for OPENAI_API_KEY
+- [X] T037 [US4] Implement llm_service.rs: build_prompt_with_schema() to construct LLM prompt using database metadata from research.md template
+- [X] T038 [US4] Implement llm_service.rs: generate_sql_from_nl() to call OpenAI Chat Completion API with temperature=0 and extract SQL from response
+- [X] T039 [US4] Implement llm_service.rs: parse_llm_response() to extract SQL from markdown code fences and clean up formatting
+- [X] T040 [US4] Implement POST /api/v1/databases/{db_name}/nl-query handler in src/api/handlers/query_handlers.rs (get metadata, call LLM, validate SQL, execute, return result)
+- [X] T041 [US4] Add error handling for LLM service unavailable (503), invalid API key (500), and unsafe SQL generation (400)
 - [ ] T042 [US4] Add integration tests in tests/integration/nlquery_tests.rs for natural language query success, LLM error handling, and generated SQL validation
 
 **Checkpoint**: All features complete - natural language query support functional
