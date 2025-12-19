@@ -25,18 +25,18 @@ Single project structure: `src/`, `tests/` at repository root (as defined in pla
 
 **Duration Estimate**: 1-2 hours
 
-- [ ] T001 Initialize Rust project with Cargo.toml dependencies (axum, sqlx, tokio, serde, tower-http, openai_api_rust, sqlparser)
-- [ ] T002 Create project directory structure per plan.md (src/{models,services,api,storage,validation}, tests/{integration,unit}, migrations/)
-- [ ] T003 [P] Create .env.example file with OPENAI_API_KEY and PORT variables
-- [ ] T004 [P] Create README.md with quickstart instructions based on quickstart.md
-- [ ] T005 Create SQLite schema in migrations/001_initial_schema.sql (database_connections, table_metadata, column_metadata tables)
-- [ ] T006 [P] Implement configuration module in src/config.rs to load environment variables
-- [ ] T007 [P] Create error types module in src/models/error.rs for standardized error responses
-- [ ] T008 [P] Create DTO types in src/api/dto.rs with serde camelCase configuration for all API request/response models
-- [ ] T009 Implement SQLite repository in src/storage/repository.rs with connection pool setup
-- [ ] T010 [P] Setup CORS middleware configuration in src/main.rs using tower-http
-- [ ] T011 Create Axum router structure in src/api/routes.rs with endpoint placeholders
-- [ ] T012 [P] Implement main.rs with server initialization, SQLite migration on startup, and graceful shutdown
+- [X] T001 Initialize Rust project with Cargo.toml dependencies (axum, sqlx, tokio, serde, tower-http, openai_api_rust, sqlparser)
+- [X] T002 Create project directory structure per plan.md (src/{models,services,api,storage,validation}, tests/{integration,unit}, migrations/)
+- [X] T003 [P] Create .env.example file with OPENAI_API_KEY and PORT variables
+- [X] T004 [P] Create README.md with quickstart instructions based on quickstart.md
+- [X] T005 Create SQLite schema in migrations/001_initial_schema.sql (database_connections, table_metadata, column_metadata tables)
+- [X] T006 [P] Implement configuration module in src/config.rs to load environment variables
+- [X] T007 [P] Create error types module in src/models/error.rs for standardized error responses
+- [X] T008 [P] Create DTO types in src/api/dto.rs with serde camelCase configuration for all API request/response models
+- [X] T009 Implement SQLite repository in src/storage/repository.rs with connection pool setup
+- [X] T010 [P] Setup CORS middleware configuration in src/main.rs using tower-http
+- [X] T011 Create Axum router structure in src/api/routes.rs with endpoint placeholders
+- [X] T012 [P] Implement main.rs with server initialization, SQLite migration on startup, and graceful shutdown
 
 **Checkpoint**: Foundation complete - can run server, SQLite initialized, routing structure ready
 
