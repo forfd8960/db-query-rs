@@ -4,6 +4,7 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
+use tower_http::normalize_path::NormalizePathLayer;
 use crate::storage::repository::Repository;
 use crate::api::handlers::{database_handlers, metadata_handlers, query_handlers};
 
@@ -18,6 +19,7 @@ pub fn create_router(state: AppState) -> Router {
     Router::new()
         // Health check endpoint
         .route("/health", get(health_check))
+        .layer(NormalizePathLayer::trim_trailing_slash())
         // API v1 routes
         .nest("/api/v1", api_v1_routes())
         .with_state(state)

@@ -51,7 +51,7 @@ async fn main() -> Result<()> {
         .allow_headers(Any);
 
     // Create router with CORS
-    let app = create_router(app_state).layer(cors).layer(NormalizePathLayer::trim_trailing_slash());
+    let app = create_router(app_state).layer(cors);
 
     // Bind server to configured port
     let addr = format!("0.0.0.0:{}", config.port);
