@@ -1,0 +1,36 @@
+# Rust/Cargo
+target/
+**/*.rs.bk
+
+# Optional: Cargo.lock handling
+# For libraries, you may choose to ignore Cargo.lock:
+# Cargo.lock
+# For binaries/apps, you should commit Cargo.lock.
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Coverage and profiling artifacts
+coverage/
+*.profraw
+lcov.info
+perf.data
+
+# Flamegraph outputs
+flamegraph.svg
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment files (uncomment if you store secrets locally)
+#.env
+#.env.local
+#.env.*.local

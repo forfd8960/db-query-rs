@@ -1,0 +1,443 @@
+# Data Model: Database Query Tool
+
+**Purpose**: Define entities, relationships, and data structures for the feature  
+**Created**: 2025-12-19  
+**Status**: Complete
+
+## Entities
+
+### 1. DatabaseConnection
+
+**Description**: Represents a configured PostgreSQL database connection that users can query.
+
+**Fields**:
+- `id`: Integer (auto-increment primary key)
+- `name`: String (unique identifier for the database, extracted from connection URL or user-specified)
+- `connectionUrl`: String (PostgreSQL connection URL: `postgresql://user:pass@host:port/dbname`)
+- `createdAt`: DateTime (ISO 8601 timestamp)
+- `updatedAt`: DateTime (ISO 8601 timestamp)
+
+**Validation Rules**:
+- `name`: Must be unique across all database connections
+- `connectionUrl`: Must match PostgreSQL URL format
+- `connectionUrl`: Must be testable (system validates connection before storing)
+
+**Relationships**:
+- One DatabaseConnection has many TableMetadata entries (one-to-many)
+
+**Storage**:
+- SQLite table: `database_connections`
+- Credentials stored in plaintext (per constitution: trusted environment, no authentication)
+
+**camelCase Serialization**:
+```json
+{
+  "id": 1,
+  "name": "production_db",
+  "connectionUrl": "postgresql://user:pass@localhost:5432/mydb",
+  "createdAt": "2025-12-19T10:30:00Z",
+  "updatedAt": "2025-12-19T10:30:00Z"
+}
+```
+
+---
+
+### 2. TableMetadata
+
+**Description**: Represents a table or view in a connected PostgreSQL database with cached metadata.
+
+**Fields**:
+- `id`: Integer (auto-increment primary key)
+- `databaseId`: Integer (foreign key to DatabaseConnection)
+- `schemaName`: String (PostgreSQL schema, e.g., "public")
+- `tableName`: String (table or view name)
+- `tableType`: String enum ("TABLE" | "VIEW")
+- `cachedAt`: DateTime (ISO 8601 timestamp of metadata retrieval)
+
+**Validation Rules**:
+- `databaseId` + `schemaName` + `tableName`: Must be unique (composite key)
+- `tableType`: Must be either "TABLE" or "VIEW"
+
+**Relationships**:
+- Many TableMetadata belong to one DatabaseConnection (many-to-one)
+- One TableMetadata has many ColumnMetadata entries (one-to-many)
+
+**Storage**:
+- SQLite table: `table_metadata`
+- Indexed by `databaseId` for fast retrieval
+
+**camelCase Serialization**:
+```json
+{
+  "id": 1,
+  "databaseId": 1,
+  "schemaName": "public",
+  "tableName": "users",
+  "tableType": "TABLE",
+  "cachedAt": "2025-12-19T10:35:00Z"
+}
+```
+
+---
+
+### 3. ColumnMetadata
+
+**Description**: Represents a column within a table or view with data type and constraint information.
+
+**Fields**:
+- `id`: Integer (auto-increment primary key)
+- `tableId`: Integer (foreign key to TableMetadata)
+- `columnName`: String (column name)
+- `dataType`: String (PostgreSQL data type, e.g., "integer", "varchar", "timestamp")
+- `isNullable`: Boolean (true if column allows NULL values)
+- `columnDefault`: String (optional, default value expression)
+- `ordinalPosition`: Integer (column order in table definition)
+- `isPrimaryKey`: Boolean (true if column is part of primary key)
+
+**Validation Rules**:
+- `tableId` + `columnName`: Must be unique (composite key)
+- `ordinalPosition`: Must be positive integer
+
+**Relationships**:
+- Many ColumnMetadata belong to one TableMetadata (many-to-one)
+
+**Storage**:
+- SQLite table: `column_metadata`
+- Indexed by `tableId` for fast joins
+
+**camelCase Serialization**:
+```json
+{
+  "id": 1,
+  "tableId": 1,
+  "columnName": "id",
+  "dataType": "integer",
+  "isNullable": false,
+  "columnDefault": "nextval('users_id_seq')",
+  "ordinalPosition": 1,
+  "isPrimaryKey": true
+}
+```
+
+---
+
+### 4. QueryResult
+
+**Description**: Represents the output of an executed SQL query (not persisted, returned as API response).
+
+**Fields**:
+- `columns`: Array of strings (column names from SELECT)
+- `rows`: Array of objects (each row as key-value pairs with camelCase keys)
+- `rowCount`: Integer (number of rows returned)
+- `executionTime`: Float (milliseconds taken to execute query, optional)
+
+**Validation Rules**:
+- `columns`: Must not be empty for successful queries
+- `rows`: Each object must have keys matching `columns`
+- `rowCount`: Must equal `rows.length`
+
+**Relationships**:
+- None (ephemeral, generated per request)
+
+**Storage**:
+- Not persisted (memory only, returned in HTTP response)
+
+**camelCase Serialization**:
+```json
+{
+  "columns": ["id", "username", "email"],
+  "rows": [
+    {"id": 1, "username": "alice", "email": "alice@example.com"},
+    {"id": 2, "username": "bob", "email": "bob@example.com"}
+  ],
+  "rowCount": 2,
+  "executionTime": 45.3
+}
+```
+
+---
+
+### 5. NaturalLanguageRequest
+
+**Description**: Represents a user's natural language query that will be translated to SQL (not persisted).
+
+**Fields**:
+- `nlQuery`: String (natural language description of desired query)
+- `databaseName`: String (target database identifier)
+- `generatedSql`: String (SQL generated by LLM, populated after translation)
+- `result`: QueryResult (query execution result, populated after SQL execution)
+
+**Validation Rules**:
+- `nlQuery`: Must not be empty
+- `databaseName`: Must reference existing DatabaseConnection
+
+**Relationships**:
+- References DatabaseConnection by name (not foreign key, ephemeral)
+- Contains QueryResult after execution
+
+**Storage**:
+- Not persisted (memory only, processed per request)
+
+**camelCase Serialization (Request)**:
+```json
+{
+  "nlQuery": "Get the first 10 users ordered by registration date"
+}
+```
+
+**camelCase Serialization (Response)**:
+```json
+{
+  "nlQuery": "Get the first 10 users ordered by registration date",
+  "generatedSql": "SELECT * FROM users ORDER BY created_at LIMIT 10",
+  "result": {
+    "columns": ["id", "username", "email", "created_at"],
+    "rows": [ /* ... */ ],
+    "rowCount": 10,
+    "executionTime": 67.2
+  }
+}
+```
+
+---
+
+## Entity Relationships Diagram
+
+```
+DatabaseConnection (1) ──< (N) TableMetadata
+                                     │
+                                     │
+                                     │ (1)
+                                     │
+                                     ▼
+                                 (N) ColumnMetadata
+
+NaturalLanguageRequest ─ ─ ─ ─> DatabaseConnection (reference by name)
+        │
+        │
+        │ (contains)
+        ▼
+    QueryResult
+```
+
+**Legend**:
+- Solid lines: Persistent relationships (stored in SQLite)
+- Dashed lines: Transient references (runtime only)
+- (1) ──< (N): One-to-many relationship
+
+---
+
+## State Transitions
+
+### DatabaseConnection Lifecycle
+
+```
+[Not Exists] 
+    │
+    │ POST /api/v1/databases/ (valid URL)
+    ▼
+[Created & Stored]
+    │
+    │ PUT /api/v1/databases/{name}/ (update URL)
+    ▼
+[Updated]
+    │
+    │ (implicit: metadata invalidation on update)
+    ▼
+[Metadata Refreshed]
+```
+
+**Notes**:
+- No explicit DELETE operation in initial spec (can add later)
+- Updating connection URL invalidates cached metadata (future enhancement)
+
+### TableMetadata Lifecycle
+
+```
+[Not Cached]
+    │
+    │ GET /api/v1/databases/{name}/metadata/ (first request)
+    │ (queries PostgreSQL information_schema)
+    ▼
+[Cached in SQLite]
+    │
+    │ GET /api/v1/databases/{name}/metadata/ (subsequent requests)
+    │ (read from SQLite, no PostgreSQL query)
+    ▼
+[Served from Cache]
+```
+
+**Notes**:
+- Initial implementation: cache indefinitely
+- Future: Add TTL-based invalidation or manual refresh endpoint
+
+### QueryResult Lifecycle
+
+```
+[SQL Query Submitted]
+    │
+    │ POST /api/v1/databases/{name}/query/
+    │ (validate SELECT-only, inject LIMIT if needed)
+    ▼
+[Validated SQL]
+    │
+    │ (execute on PostgreSQL via SQLx)
+    ▼
+[Query Executed]
+    │
+    │ (transform rows to camelCase JSON)
+    ▼
+[QueryResult Returned & Discarded]
+```
+
+**Notes**:
+- No persistence of query history or results
+- Each query is stateless
+
+### NaturalLanguageRequest Lifecycle
+
+```
+[Natural Language Input]
+    │
+    │ POST /api/v1/databases/{name}/nl-query/
+    │ (retrieve metadata for LLM context)
+    ▼
+[Metadata Retrieved]
+    │
+    │ (send to OpenAI API with schema context)
+    ▼
+[SQL Generated by LLM]
+    │
+    │ (validate generated SQL)
+    ▼
+[Validated SQL]
+    │
+    │ (execute like regular query)
+    ▼
+[QueryResult Returned & Discarded]
+```
+
+**Notes**:
+- LLM-generated SQL goes through same validation as user SQL
+- No storage of natural language queries or generated SQL
+
+---
+
+## Data Transformations
+
+### PostgreSQL → SQLite (Metadata Caching)
+
+When retrieving metadata from PostgreSQL information_schema:
+
+**Input (PostgreSQL information_schema)**:
+```sql
+table_schema | table_name | table_type | column_name | data_type | is_nullable | column_default
+-------------|------------|------------|-------------|-----------|-------------|---------------
+public       | users      | BASE TABLE | id          | integer   | NO          | nextval(...)
+public       | users      | BASE TABLE | username    | varchar   | NO          | NULL
+```
+
+**Output (SQLite storage)**:
+```sql
+-- table_metadata
+INSERT INTO table_metadata (database_id, schema_name, table_name, table_type, cached_at)
+VALUES (1, 'public', 'users', 'TABLE', '2025-12-19T10:35:00Z');
+
+-- column_metadata
+INSERT INTO column_metadata (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, is_primary_key)
+VALUES 
+  (1, 'id', 'integer', 0, 'nextval(...)', 1, 1),
+  (1, 'username', 'varchar', 0, NULL, 2, 0);
+```
+
+### SQLite → API Response (camelCase JSON)
+
+When serving cached metadata:
+
+**Input (SQLite JOIN query)**:
+```sql
+SELECT 
+  tm.schema_name, tm.table_name, tm.table_type,
+  cm.column_name, cm.data_type, cm.is_nullable, cm.is_primary_key
+FROM table_metadata tm
+JOIN column_metadata cm ON tm.id = cm.table_id
+WHERE tm.database_id = 1;
+```
+
+**Output (API Response)**:
+```json
+{
+  "tables": [
+    {
+      "schemaName": "public",
+      "tableName": "users",
+      "tableType": "TABLE",
+      "columns": [
+        {
+          "columnName": "id",
+          "dataType": "integer",
+          "isNullable": false,
+          "isPrimaryKey": true
+        },
+        {
+          "columnName": "username",
+          "dataType": "varchar",
+          "isNullable": false,
+          "isPrimaryKey": false
+        }
+      ]
+    }
+  ]
+}
+```
+
+### PostgreSQL Query Result → API Response
+
+When executing SQL query:
+
+**Input (PostgreSQL result set)**:
+```
+id | user_name | email_address
+---|-----------|---------------
+1  | alice     | alice@ex.com
+2  | bob       | bob@ex.com
+```
+
+**Output (API Response with camelCase)**:
+```json
+{
+  "columns": ["id", "userName", "emailAddress"],
+  "rows": [
+    {"id": 1, "userName": "alice", "emailAddress": "alice@ex.com"},
+    {"id": 2, "userName": "bob", "emailAddress": "bob@ex.com"}
+  ],
+  "rowCount": 2
+}
+```
+
+**Transformation Rule**:
+- Column names: snake_case → camelCase
+- Apply to both `columns` array and row object keys
+- Use serde `rename_all = "camelCase"` for automatic conversion
+
+---
+
+## Summary
+
+**5 Core Entities Defined**:
+1. **DatabaseConnection** - Persistent, stored in SQLite
+2. **TableMetadata** - Persistent, cached in SQLite
+3. **ColumnMetadata** - Persistent, cached in SQLite
+4. **QueryResult** - Transient, returned per request
+5. **NaturalLanguageRequest** - Transient, processed per request
+
+**Key Design Decisions**:
+- Normalized SQLite schema with foreign key relationships
+- camelCase serialization via serde for all API responses
+- Metadata caching strategy: fetch once, serve from cache
+- No query history or audit logging (out of scope)
+- Stateless query execution (no session management)
+
+All entities align with constitution requirements (camelCase, no auth, ergonomic Rust patterns).
+
+Ready to proceed to API contracts definition (contracts/).
